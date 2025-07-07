@@ -9,11 +9,11 @@ on:
   schedule:
     - cron: '35 18 * * *'
   push:
-    branches: [ "main" ]
+    branches: [ "qa" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "qa" ]
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -98,7 +98,7 @@ jobs:
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
   deploy:
-      name: Main api_gateway
+      name: qa api_gateway
       needs: build
       runs-on: ubuntu-latest
 
@@ -106,18 +106,18 @@ jobs:
         - name: Deploy EC2
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: ${{ secrets.EC2_IP_PROD }}
+            host: ${{ secrets.EC2_IP }}
             username: ubuntu
-            key: ${{ secrets.EC2_PEM_PROD }}
+            key: ${{ secrets.EC2_PEM }}
             script: |
               docker stop project_api_gateway || true
               docker rm project_api_gateway || true
-              docker rmi ${{ secrets.DOCKER_REPO }}:main || true
+              docker rmi ${{ secrets.DOCKER_REPO }}:qa || true
 
-              docker pull ${{ secrets.DOCKER_REPO }}:main
+              docker pull ${{ secrets.DOCKER_REPO }}:qa
 
               docker run -d \
                 --restart always \
                 --name project_api_gateway \
                 -p 8080:8080 \
-                ${{ secrets.DOCKER_REPO }}:main
+                ${{ secrets.DOCKER_REPO }}:qa
